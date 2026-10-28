@@ -1,0 +1,412 @@
+<title>CurrencyPop Build Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+  /* Layout: one narrow reading column; the mockup and the step rail are the only full-width breaks. */
+  :root {
+    --bg: #f2f5f4;
+    --surface: #ffffff;
+    --surface-sunk: #e8eeec;
+    --fg: #121a19;
+    --muted: #5b6b69;
+    --line: #d6dedc;
+    --accent: #0d6354;
+    --accent-soft: #d5e9e3;
+    --flag: #8a5312;
+
+    --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+    --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1413;
+      --surface: #161e1d;
+      --surface-sunk: #101817;
+      --fg: #e4ecea;
+      --muted: #8fa09d;
+      --line: #25302e;
+      --accent: #5fd3b8;
+      --accent-soft: #15302a;
+      --flag: #d9a05b;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1413;
+    --surface: #161e1d;
+    --surface-sunk: #101817;
+    --fg: #e4ecea;
+    --muted: #8fa09d;
+    --line: #25302e;
+    --accent: #5fd3b8;
+    --accent-soft: #15302a;
+    --flag: #d9a05b;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 48px 72px;
+  }
+  main { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 7vw, 2.9rem);
+    line-height: 1.1;
+    font-weight: 600;
+    margin: 0;
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  h3 { font-size: 0.95rem; font-weight: 600; margin: 0 0 4px; }
+  p { margin: 0 0 14px; }
+  p:last-child { margin-bottom: 0; }
+  a { color: var(--accent); }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  .lede { font-size: 1.08rem; color: var(--muted); margin: 14px 0 0; max-width: 56ch; }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 28px;
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 0.82rem;
+  }
+  .facts div { min-width: 0; }
+  .facts span { display: block; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  section { min-width: 0; }
+
+  figure { margin: 0; }
+  .mock {
+    background: var(--surface-sunk);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 14px 10px;
+    overflow-x: auto;
+  }
+  .mock svg { display: block; width: 100%; min-width: 440px; height: auto; }
+  figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 12px; }
+
+  ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  ol.steps > li {
+    counter-increment: s;
+    display: grid;
+    grid-template-columns: 2.1rem 1fr;
+    gap: 14px;
+    padding: 16px 0;
+    border-top: 1px solid var(--line);
+    min-width: 0;
+  }
+  ol.steps > li:last-child { border-bottom: 1px solid var(--line); }
+  ol.steps > li::before {
+    content: counter(s, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+    padding-top: 3px;
+  }
+  .step-body { min-width: 0; }
+  .step-body p { font-size: 0.93rem; color: var(--muted); margin: 2px 0 0; }
+  .est {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 1px 8px;
+    margin-left: 8px;
+    white-space: nowrap;
+  }
+
+  pre {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 1.55;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    margin: 12px 0 0;
+    overflow-x: auto;
+  }
+  code { font-family: var(--mono); font-size: 0.86em; }
+  p code, li code, td code { background: var(--accent-soft); color: var(--fg); padding: 1px 5px; border-radius: 4px; }
+
+  .spec { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .spec > div { background: var(--surface); padding: 14px 16px; min-width: 0; }
+  .spec p { font-size: 0.88rem; color: var(--muted); margin: 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .tablewrap { overflow-x: auto; }
+  th, td { text-align: left; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+  td:first-child { font-weight: 500; white-space: nowrap; padding-right: 20px; }
+
+  .fork { border-left: 2px solid var(--flag); padding-left: 16px; }
+  .fork h3 { color: var(--flag); font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+
+  ul.cut { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  ul.cut li { display: grid; grid-template-columns: auto 1fr; gap: 12px; font-size: 0.93rem; min-width: 0; }
+  ul.cut b { font-weight: 500; }
+  ul.cut em { font-style: normal; color: var(--muted); display: block; font-size: 0.86rem; }
+  .x { color: var(--muted); font-family: var(--mono); }
+</style>
+
+<main>
+
+  <header>
+    <p class="eyebrow">macOS · SwiftUI · one afternoon</p>
+    <h1>CurrencyPop</h1>
+    <p class="lede">A menu bar popover that converts an amount — or a bit of arithmetic — between two currencies. No window, no Dock icon, no sign-in. Click the icon, type <code>1250+300*2</code>, read the number, click away.</p>
+    <div class="facts">
+      <div><span>Target</span>macOS 14+</div>
+      <div><span>Stack</span>Swift · SwiftUI</div>
+      <div><span>Dependencies</span>none</div>
+      <div><span>Rates</span>frankfurter.dev</div>
+      <div><span>Build time</span>~1 hour</div>
+    </div>
+  </header>
+
+  <section>
+    <h2>What it looks like</h2>
+    <figure>
+      <div class="mock">
+        <svg viewBox="0 0 620 400" role="img" aria-label="Mockup of the CurrencyPop menu bar popover: a currency symbol in the macOS menu bar, with a panel below holding an amount field, a from-currency row, a swap button, a to-currency row, the converted result, and a rate timestamp.">
+          <!-- menu bar strip -->
+          <rect x="0" y="0" width="620" height="26" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+          <circle cx="470" cy="13" r="4" fill="none" stroke="var(--muted)" stroke-width="1.2"/>
+          <path d="M466 13h8M470 9v8" stroke="var(--muted)" stroke-width="1.2"/>
+          <text x="498" y="17" font-family="var(--mono)" font-size="10" fill="var(--muted)">100%</text>
+          <text x="536" y="17" font-family="var(--mono)" font-size="10" fill="var(--muted)">Wed 14:02</text>
+          <!-- active icon -->
+          <rect x="424" y="3" width="30" height="20" rx="5" fill="var(--accent-soft)"/>
+          <text x="439" y="18" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--accent)">⇄</text>
+
+          <!-- popover tail -->
+          <path d="M439 30l-8 10h16z" fill="var(--surface)" stroke="var(--line)"/>
+          <rect x="439" y="33" width="2" height="8" fill="var(--surface)"/>
+
+          <!-- popover body -->
+          <rect x="281" y="40" width="318" height="286" rx="14" fill="var(--surface)" stroke="var(--line)"/>
+
+          <!-- amount field -->
+          <text x="301" y="70" font-family="var(--mono)" font-size="9" letter-spacing="1.2" fill="var(--muted)">AMOUNT</text>
+          <text x="579" y="70" text-anchor="end" font-family="var(--mono)" font-size="10" fill="var(--accent)">= 1,850</text>
+          <rect x="301" y="78" width="278" height="46" rx="8" fill="var(--surface-sunk)" stroke="var(--line)"/>
+          <text x="315" y="109" font-family="var(--mono)" font-size="24" fill="var(--fg)">1250+300*2</text>
+          <rect x="462" y="86" width="1.5" height="30" fill="var(--accent)"/>
+          <text x="559" y="107" text-anchor="end" font-family="var(--sans)" font-size="14" fill="var(--muted)">kr</text>
+
+          <!-- from row -->
+          <rect x="301" y="138" width="200" height="34" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="315" y="160" font-family="var(--sans)" font-size="13" font-weight="500" fill="var(--fg)">DKK</text>
+          <text x="352" y="160" font-family="var(--sans)" font-size="12" fill="var(--muted)">Danish krone</text>
+          <path d="M487 152l5 5 5-5" fill="none" stroke="var(--muted)" stroke-width="1.4" stroke-linecap="round"/>
+
+          <!-- swap -->
+          <circle cx="531" cy="172" r="17" fill="var(--accent-soft)"/>
+          <path d="M524 167h12l-3-3M538 177h-12l3 3" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+          <!-- to row -->
+          <rect x="301" y="180" width="200" height="34" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+          <text x="315" y="202" font-family="var(--sans)" font-size="13" font-weight="500" fill="var(--fg)">VND</text>
+          <text x="352" y="202" font-family="var(--sans)" font-size="12" fill="var(--muted)">Vietnamese dong</text>
+          <path d="M487 194l5 5 5-5" fill="none" stroke="var(--muted)" stroke-width="1.4" stroke-linecap="round"/>
+
+          <!-- divider -->
+          <path d="M301 234h278" stroke="var(--line)"/>
+
+          <!-- result -->
+          <text x="301" y="266" font-family="var(--mono)" font-size="9" letter-spacing="1.2" fill="var(--muted)">CONVERTS TO</text>
+          <text x="301" y="296" font-family="var(--mono)" font-size="26" fill="var(--accent)">7,076,250</text>
+          <text x="559" y="296" text-anchor="end" font-family="var(--sans)" font-size="14" fill="var(--muted)">₫</text>
+          <text x="301" y="314" font-family="var(--mono)" font-size="9.5" fill="var(--muted)">ECB rate 28 Oct · 1 DKK = 3,825.00 ₫</text>
+
+          <!-- annotations -->
+          <path d="M268 100h21" stroke="var(--muted)" stroke-dasharray="2 3"/>
+          <text x="260" y="97" text-anchor="end" font-family="var(--mono)" font-size="10" fill="var(--muted)">focused on open</text>
+          <text x="260" y="111" text-anchor="end" font-family="var(--mono)" font-size="10" fill="var(--muted)">+ − * / evaluated live</text>
+
+          <path d="M268 197h21" stroke="var(--muted)" stroke-dasharray="2 3"/>
+          <text x="260" y="194" text-anchor="end" font-family="var(--mono)" font-size="10" fill="var(--muted)">last pair remembered</text>
+          <text x="260" y="208" text-anchor="end" font-family="var(--mono)" font-size="10" fill="var(--muted)">⇄ swaps, ⌘S too</text>
+
+          <path d="M268 288h21" stroke="var(--muted)" stroke-dasharray="2 3"/>
+          <text x="260" y="285" text-anchor="end" font-family="var(--mono)" font-size="10" fill="var(--muted)">live as you type</text>
+          <text x="260" y="299" text-anchor="end" font-family="var(--mono)" font-size="10" fill="var(--muted)">click to copy</text>
+
+          <text x="440" y="352" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">318 × 286 pt · no title bar · dismisses on click-away or Esc</text>
+        </svg>
+      </div>
+      <figcaption>One popover, six elements, nothing behind a menu. The amount field has focus the moment the panel opens, so the first keystroke is a digit — and it takes arithmetic, not just numbers. The running total sits beside the label; the field keeps your expression so you can still edit it.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Design rules for the panel</h2>
+    <div class="spec">
+      <div>
+        <h3>Size</h3>
+        <p>318 × 286 pt, fixed. Big enough for two full currency names, small enough to feel like a menu rather than a window.</p>
+      </div>
+      <div>
+        <h3>Type</h3>
+        <p>System font throughout. Amount and result in <code>.monospacedDigit</code> so the number stops jittering while you type.</p>
+      </div>
+      <div>
+        <h3>Color</h3>
+        <p>Only the result and the swap button carry the accent. Everything else is system label and secondary label, so it tracks macOS light/dark for free.</p>
+      </div>
+      <div>
+        <h3>Motion</h3>
+        <p>None, except the swap button's 180° rotation. A popover that animates its contents feels slow at this size.</p>
+      </div>
+      <div>
+        <h3>Math in the field</h3>
+        <p><code>+ − * /</code> with real precedence, so <code>1250+300*2</code> is 1,850. The field never rewrites what you typed; it answers beside the label instead.</p>
+      </div>
+      <div>
+        <h3>Half-typed input</h3>
+        <p><code>1250+</code> is not an error. The result holds its last good value and the total beside the label dims until the expression parses again.</p>
+      </div>
+      <div>
+        <h3>Empty state</h3>
+        <p>Opens showing the last amount and pair, already converted. Never a blank field.</p>
+      </div>
+      <div>
+        <h3>Offline</h3>
+        <p>Stale rates still convert; the footer line turns to "ECB rate 26 Oct · offline" instead of hiding the result.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Build order</h2>
+    <ol class="steps">
+      <li>
+        <div class="step-body">
+          <h3>New Xcode project<span class="est">5 min</span></h3>
+          <p>macOS App, SwiftUI lifecycle, name <code>CurrencyPop</code>. In Info.plist set <code>LSUIElement</code> to <code>YES</code> — no Dock icon, no app switcher entry.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Turn the window into a menu bar item<span class="est">5 min</span></h3>
+          <p>Replace <code>WindowGroup</code> in the <code>App</code> struct. <code>.menuBarExtraStyle(.window)</code> is what gives a real panel instead of a dropdown menu.</p>
+          <pre>@main
+struct CurrencyPopApp: App {
+    var body: some Scene {
+        MenuBarExtra("CurrencyPop", systemImage: "arrow.left.arrow.right") {
+            ConverterView()
+        }
+        .menuBarExtraStyle(.window)
+    }
+}</pre>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Lay out the panel<span class="est">15 min</span></h3>
+          <p>A <code>VStack</code>: amount <code>TextField</code>, from-picker, swap button, to-picker, <code>Divider</code>, result, footer. State in <code>@AppStorage</code> (<code>amount</code>, <code>from</code>, <code>to</code>) so it reopens exactly as you left it. <code>.frame(width: 318)</code> on the root view.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Make the field do arithmetic<span class="est">10 min</span></h3>
+          <p>Foundation already evaluates expressions — <code>NSExpression</code> — so there is no parser to write and precedence comes for free. One catch worth knowing before you type it: on malformed input it raises an Objective-C exception that Swift cannot catch, and a field someone types into is malformed on almost every keystroke (<code>1250+</code>). The regex below is the whole safety story: nothing but a complete flat expression ever reaches it, and <code>nil</code> simply means "keep showing the last good result".</p>
+          <pre>/// "1250+300*2" -> 1850. nil while the expression is incomplete.
+func evaluate(_ raw: String) -> Double? {
+    let s = raw.filter { !$0.isWhitespace }
+    // A number, then any run of (operator, number). Nothing else gets through —
+    // NSExpression raises an uncatchable exception on bad syntax.
+    guard s.range(of: #"^\d+(\.\d+)?([-+*/]\d+(\.\d+)?)*$"#,
+                  options: .regularExpression) != nil else { return nil }
+    return (NSExpression(format: s)
+        .expressionValue(with: nil, context: nil) as? NSNumber)?.doubleValue
+}</pre>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Fetch and cache rates<span class="est">15 min</span></h3>
+          <p>One <code>async</code> call per base currency, triggered by <code>.task</code> on appear. Store the decoded dictionary plus its date in <code>@AppStorage</code> as JSON; skip the call if it is under an hour old.</p>
+          <pre>// https://api.frankfurter.dev/v1/latest?base=DKK
+struct Rates: Codable {
+    let base: String
+    let date: String                 // "2026-10-28"
+    let rates: [String: Double]      // ["VND": 3825.0, ...]
+}</pre>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Run it, then polish<span class="est">5 min</span></h3>
+          <p>Check four things by hand: <code>1250+300*2</code> converts 1,850 and not 3,100, a half-typed <code>1250+</code> leaves the last result standing instead of flashing zero, the swap button keeps the amount rather than the result, and quitting and relaunching restores the pair. Those four cover every bug this app can have.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>The rate source</h2>
+    <div class="tablewrap">
+      <table>
+        <tr><th>Question</th><th>Answer</th></tr>
+        <tr><td>Who</td><td>frankfurter.dev — open source, serves European Central Bank reference rates</td></tr>
+        <tr><td>Key</td><td>None. No account, no header, no rate limit to speak of</td></tr>
+        <tr><td>Coverage</td><td>~30 currencies: EUR, USD, GBP, DKK, SEK, NOK, JPY, VND and the rest of the ECB list. No crypto</td></tr>
+        <tr><td>Freshness</td><td>Updated once per working day, around 16:00 CET. Weekend rates are Friday's</td></tr>
+        <tr><td>Good for</td><td>Travel math, invoices, "is this expensive"</td></tr>
+        <tr><td>Not for</td><td>Trading, or anything where the second decimal is money</td></tr>
+      </table>
+    </div>
+    <p style="margin-top:14px">If a currency outside the ECB list matters later, swapping in a keyed API is a change to one function.</p>
+  </section>
+
+  <section class="fork">
+    <h3>One decision to make first</h3>
+    <p><b>Menu bar icon</b> (planned above) — always one click away, ~80 lines, nothing to configure.</p>
+    <p><b>Global hotkey panel</b> — appears under the cursor on ⌥C, feels faster once it is muscle memory, but needs an <code>NSPanel</code>, a global event monitor and an Accessibility permission prompt. Roughly double the code and the only part that can break on a macOS update.</p>
+    <p style="margin-bottom:0">Starting with the menu bar does not block the hotkey: the panel view is the same either way.</p>
+  </section>
+
+  <section>
+    <h2>Deliberately left out</h2>
+    <ul class="cut">
+      <li><span class="x">—</span><div><b>Rate history chart</b><em>Add when you catch yourself wondering whether now is a good time to transfer.</em></div></li>
+      <li><span class="x">—</span><div><b>Parentheses and percent in the field</b><em>Both widen the regex and reopen the crash NSExpression can throw; <code>+10%</code> also means modulo to it, not a tip. Add when flat <code>+ − * /</code> genuinely runs out.</em></div></li>
+      <li><span class="x">—</span><div><b>Crypto</b><em>Different API, different update cadence, different rounding. A second app, not a second picker.</em></div></li>
+      <li><span class="x">—</span><div><b>Favourites or multi-currency output</b><em>Add when two pairs is not enough; the swap button covers most of it.</em></div></li>
+      <li><span class="x">—</span><div><b>Preferences window</b><em>There is nothing to configure. If settings appear, that is the signal the app grew too far.</em></div></li>
+      <li><span class="x">—</span><div><b>Launch at login, auto-update, notarization</b><em>Add on the day you want someone else to install it.</em></div></li>
+    </ul>
+  </section>
+
+</main>
