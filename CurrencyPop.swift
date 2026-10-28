@@ -161,10 +161,12 @@ struct ConverterView: View {
                 .foregroundStyle(copied ? accent : Color.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(displayed.map(formatAmount) ?? "—")
-                    .font(.system(size: 26, design: .monospaced))
+                    .font(.system(size: 34, weight: .medium, design: .monospaced))
                     .foregroundStyle(accent)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                    // Nine digits fit at full size; a ten-digit rupiah total shrinks
+                    // rather than clipping or widening the panel.
+                    .minimumScaleFactor(0.5)
                 Spacer()
                 Text(to)
                     .font(.system(size: 13))
