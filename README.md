@@ -4,6 +4,18 @@ A macOS menu bar popover that converts an amount — or a bit of arithmetic —
 between currencies. Click the ⇄ icon, type `1250+300*2`, read the number,
 click away. No window, no Dock icon, no sign-in, no dependencies.
 
+## Install
+
+Download `CurrencyPop.zip` from the
+[latest release](https://github.com/dinhthaidaica/CurrencyPop/releases/latest),
+unzip it and drag `CurrencyPop.app` to `/Applications`. Releases are signed
+and notarised, so it opens with a double-click.
+
+It has no Dock icon and no window. Look for the ⇄ in your menu bar.
+
+To have it start with your Mac: System Settings → General → Login Items →
+**+** → CurrencyPop.
+
 ## Build
 
 ```sh
@@ -14,7 +26,7 @@ click away. No window, no Dock icon, no sign-in, no dependencies.
 
 Requires Xcode command line tools. There is no Xcode project: `build.sh`
 compiles the two Swift files with `swiftc` and assembles the `.app` bundle
-by hand, which is the whole reason this stays three files.
+by hand, which is the whole reason the source stays this small.
 
 ## How it works
 
@@ -39,10 +51,26 @@ by hand, which is the whole reason this stays three files.
 | `CurrencyPop.swift` | `MenuBarExtra` scene and the panel. |
 | `tests/main.swift` | 26 assertions, run with `./build.sh test`. |
 | `build.sh` | Compile, assemble the bundle, ad-hoc sign. |
+| `release.sh` | Sign with a Developer ID, notarise, staple, publish a GitHub release. |
+| `tools/makeicon.swift` | Regenerates `CurrencyPop.icns`. Only needed if the mark changes. |
 | `docs/plan.html` | The design and build plan this was written from. |
+
+## Releasing
+
+```sh
+./release.sh v1.0
+```
+
+Needs a Developer ID Application certificate in your keychain and a stored
+`notarytool` credential profile; `release.sh` explains both at the top and
+refuses to start without the certificate.
 
 ## Deliberately left out
 
 Parentheses and `%` in the field, crypto, rate history, favourites, a
 preferences window, launch at login. Each has a trigger for adding it in
 `docs/plan.html`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

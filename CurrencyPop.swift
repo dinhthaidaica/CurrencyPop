@@ -54,7 +54,7 @@ struct ConverterView: View {
             resultBlock
         }
         .padding(14)
-        .frame(width: 318)
+        .frame(width: 340)
         .tint(accent)
         .onChange(of: result) { _, new in if let new { displayed = new } }
         .onAppear {
@@ -159,27 +159,46 @@ struct ConverterView: View {
                 .font(.system(size: 9, weight: .medium, design: .monospaced))
                 .kerning(1.2)
                 .foregroundStyle(copied ? accent : Color.secondary)
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(displayed.map(formatAmount) ?? "—")
-                    .font(.system(size: 34, weight: .medium, design: .monospaced))
+                    .font(.system(size: 44, weight: .semibold, design: .monospaced))
                     .foregroundStyle(accent)
                     .lineLimit(1)
-                    // Nine digits fit at full size; a ten-digit rupiah total shrinks
-                    // rather than clipping or widening the panel.
+                    // Nothing shares this line but the currency code, so eleven
+                    // digits of rupiah fit before the scale factor has to bite.
                     .minimumScaleFactor(0.5)
-                Spacer()
                 Text(to)
-                    .font(.system(size: 13))
+                    .font(.system(size: 15))
                     .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
             }
-            Text(footnote)
-                .font(.system(size: 9.5, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .padding(.top, 2)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(footnote)
+                    .font(.system(size: 9.5, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                copyButton
+            }
+            .padding(.top, 2)
         }
         .contentShape(Rectangle())
         .onTapGesture { copyResult() }
-        .help("Click to copy")
+    }
+
+    private var copyButton: some View {
+        Button(action: copyResult) {
+            // Text(Image:) rather than Image: the symbol then carries a text
+            // baseline, so it lines up with the result instead of the row's bottom.
+            Text(Image(systemName: copied ? "checkmark" : "doc.on.doc"))
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(copied ? accent : Color.secondary)
+                .padding(5)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(displayed == nil)
+        .keyboardShortcut("c", modifiers: [.command, .shift])  // ⌘C stays with the field
+        .help("Copy the converted amount (⇧⌘C)")
     }
 
     private var footnote: String {

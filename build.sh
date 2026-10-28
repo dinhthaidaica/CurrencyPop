@@ -16,10 +16,12 @@ if [ "${1:-}" = "test" ]; then
 fi
 
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 swiftc -O -target "$DEPLOY" Math.swift CurrencyPop.swift \
   -o "$APP/Contents/MacOS/CurrencyPop"
+
+cp CurrencyPop.icns "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -31,6 +33,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 	<key>CFBundleIdentifier</key><string>dev.local.currencypop</string>
 	<key>CFBundleExecutable</key><string>CurrencyPop</string>
 	<key>CFBundlePackageType</key><string>APPL</string>
+	<key>CFBundleIconFile</key><string>CurrencyPop</string>
 	<key>CFBundleShortVersionString</key><string>1.0</string>
 	<key>CFBundleVersion</key><string>1</string>
 	<key>LSMinimumSystemVersion</key><string>14.0</string>
