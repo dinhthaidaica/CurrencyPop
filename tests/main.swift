@@ -41,9 +41,16 @@ check(convert(5, from: "EUR", to: "EUR", rates: ["EUR": 1.0]) == 5, "same curren
 check(convert(5, from: "XXX", to: "EUR", rates: ["EUR": 1.0]) == nil, "unknown currency")
 
 // formatting
-check(formatAmount(7076250).filter(\.isNumber) == "7076250", "big numbers drop the decimals")
-check(formatAmount(92.5926).filter(\.isNumber) == "9259", "small numbers keep two")
-check(formatAmount(7076250).count > 7, "big numbers are grouped")
+check(fractionDigits("USD") == 2, "USD has cents")
+check(fractionDigits("DKK") == 2, "DKK has øre")
+check(fractionDigits("VND") == 0, "VND has no minor unit")
+check(fractionDigits("JPY") == 0, "JPY has no minor unit")
+check(formatAmount(7076250, "VND").filter(\.isNumber) == "7076250", "no decimals on dong")
+check(formatAmount(92.5926, "USD").filter(\.isNumber) == "9259", "cents are kept")
+// The bug this replaced: a magnitude rule rounded anything over 1000 to whole units.
+check(formatAmount(1234.56, "DKK").filter(\.isNumber) == "123456", "a large DKK amount keeps its øre")
+check(formatAmount(1234, "USD").filter(\.isNumber) == "123400", "a round amount still shows cents")
+check(formatAmount(7076250, "VND").count > 7, "big numbers are grouped")
 check(shortDate("2026-10-28") == "28 Oct", "ECB date")
 check(shortDate("nonsense") == "nonsense", "unparseable date passes through")
 

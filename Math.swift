@@ -44,12 +44,26 @@ func convert(_ amount: Double, from: String, to: String, rates: [String: Double]
     return amount / f * t
 }
 
-/// Grouped, and only as precise as the size of the number deserves.
-func formatAmount(_ value: Double) -> String {
+/// What the currency's minor unit is: 2 for USD and DKK, 0 for VND and JPY,
+/// 3 for KWD. Foundation already knows, so there is no table to keep current.
+func fractionDigits(_ code: String) -> Int {
+    let f = NumberFormatter()
+    f.numberStyle = .currency
+    f.currencyCode = code
+    return f.maximumFractionDigits
+}
+
+/// Grouped, with the decimals the currency actually has.
+///
+/// Keying this on the size of the number instead — the obvious shortcut, since
+/// nobody wants two decimals on a dong total — silently rounded 1234.56 DKK to
+/// 1235, on screen and on the clipboard.
+func formatAmount(_ value: Double, _ code: String) -> String {
+    let digits = fractionDigits(code)
     let f = NumberFormatter()
     f.numberStyle = .decimal
-    f.maximumFractionDigits = abs(value) >= 1000 ? 0 : 2
-    f.minimumFractionDigits = 0
+    f.maximumFractionDigits = digits
+    f.minimumFractionDigits = digits
     return f.string(from: value as NSNumber) ?? "—"
 }
 

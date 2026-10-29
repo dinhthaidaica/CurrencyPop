@@ -87,9 +87,9 @@ struct ConverterView: View {
     /// The running total, shown only when the field holds more than a plain number.
     @State private var lastSubtotal: String?
     private var subtotal: String? {
+        guard input.contains(where: { "+-*/".contains($0) }) else { return nil }
         guard let amount else { return lastSubtotal }
-        let formatted = formatAmount(amount)
-        return formatted == input.filter { !$0.isWhitespace } ? nil : formatted
+        return formatAmount(amount, from)
     }
 
     private var amountField: some View {
@@ -160,7 +160,7 @@ struct ConverterView: View {
                 .kerning(1.2)
                 .foregroundStyle(copied ? accent : Color.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(displayed.map(formatAmount) ?? "—")
+                Text(displayed.map { formatAmount($0, to) } ?? "—")
                     .font(.system(size: 44, weight: .semibold, design: .monospaced))
                     .foregroundStyle(accent)
                     .lineLimit(1)
@@ -212,7 +212,7 @@ struct ConverterView: View {
     private func copyResult() {
         guard let displayed else { return }
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(formatAmount(displayed), forType: .string)
+        NSPasteboard.general.setString(formatAmount(displayed, to), forType: .string)
         withAnimation { copied = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             withAnimation { copied = false }
