@@ -40,8 +40,14 @@ by hand, which is the whole reason the source stays this small.
   cosmetic: `NSExpression` raises an Objective-C exception on malformed
   input that Swift cannot catch, and a field being typed into is malformed
   on most keystrokes.
-- **Precision** is deliberate: ECB rates update once per working day. Good
-  for travel math and invoices, not for trading.
+- **Precision** follows the currency, not the size of the number: cents on
+  USD and øre on DKK at any magnitude, none on VND or JPY, which have no
+  minor unit. ECB rates themselves update once per working day — good for
+  travel math and invoices, not for trading.
+- **Updates** are checked once a day against this repository's releases
+  page. When a newer tag exists the panel shows a line offering the
+  download; it never installs anything on its own. That daily request to
+  `api.github.com` is the only network traffic besides the rate fetch.
 
 ## Files
 

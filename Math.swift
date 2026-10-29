@@ -19,6 +19,33 @@ func currencyName(_ code: String) -> String {
     Locale.current.localizedString(forCurrencyCode: code) ?? code
 }
 
+/// The two fields we need from api.github.com/repos/.../releases/latest.
+struct LatestRelease: Codable, Equatable {
+    let tagName: String
+    let htmlUrl: String
+
+    enum CodingKeys: String, CodingKey {
+        case tagName = "tag_name"
+        case htmlUrl = "html_url"
+    }
+}
+
+/// Compares "v1.10" against "1.9" numerically, component by component, so the
+/// tenth release does not look older than the ninth the way a string compare
+/// would have it. Anything unparseable counts as not newer.
+func isNewer(_ tag: String, than current: String) -> Bool {
+    func parts(_ s: String) -> [Int] {
+        s.drop(while: { !$0.isNumber }).split(separator: ".").map { Int($0) ?? 0 }
+    }
+    let new = parts(tag), old = parts(current)
+    for i in 0 ..< max(new.count, old.count) {
+        let a = i < new.count ? new[i] : 0
+        let b = i < old.count ? old[i] : 0
+        if a != b { return a > b }
+    }
+    return false
+}
+
 /// "1250+300*2" -> 1850. nil while the expression is incomplete or malformed.
 ///
 /// NSExpression raises an Objective-C exception on bad syntax that Swift cannot

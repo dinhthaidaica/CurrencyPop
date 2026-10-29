@@ -3,6 +3,9 @@ import AppKit
 
 // MARK: - Model
 
+let currentVersion = Bundle.main
+    .object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
+
 /// The one accent in the panel, dark enough to read on white and light enough on black.
 let accent = Color(nsColor: NSColor(name: nil) { appearance in
     appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
@@ -29,6 +32,9 @@ struct ConverterView: View {
     @AppStorage("from") private var from = "USD"
     @AppStorage("to") private var to = "EUR"
     @AppStorage("cachedRates") private var cachedRates = ""
+    @AppStorage("lastUpdateCheck") private var lastUpdateCheck = 0.0
+    @AppStorage("latestTag") private var latestTag = ""
+    @AppStorage("latestURL") private var latestURL = ""
 
     @State private var rates: RateSet?
     @State private var displayed: Double?   // last good result, kept while you retype
@@ -52,6 +58,7 @@ struct ConverterView: View {
             pickerRow
             Divider().padding(.vertical, 2)
             resultBlock
+            if let update { updateNotice(update) }
         }
         .padding(14)
         .frame(width: 340)
@@ -61,7 +68,10 @@ struct ConverterView: View {
             displayed = result
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { amountFocused = true }
         }
-        .task { await loadRates() }
+        .task {
+            await loadRates()
+            await checkForUpdate()
+        }
     }
 
     // MARK: Amount
@@ -217,6 +227,47 @@ struct ConverterView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             withAnimation { copied = false }
         }
+    }
+
+    // MARK: Updates
+
+    /// Read from what the last check stored, so the notice is on screen the
+    /// instant the panel opens rather than a second later. It disappears by
+    /// itself once the running version catches up with the tag.
+    private var update: (tag: String, url: URL)? {
+        guard isNewer(latestTag, than: currentVersion),
+              let url = URL(string: latestURL) else { return nil }
+        return (latestTag, url)
+    }
+
+    private func updateNotice(_ update: (tag: String, url: URL)) -> some View {
+        Link(destination: update.url) {
+            HStack(spacing: 5) {
+                Image(systemName: "arrow.down.circle")
+                Text("\(update.tag) available")
+                Spacer(minLength: 0)
+                Text("Download").underline()
+            }
+            .font(.system(size: 11))
+            .foregroundStyle(accent)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 9)
+            .background(RoundedRectangle(cornerRadius: 7).fill(accent.opacity(0.12)))
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 4)
+    }
+
+    private func checkForUpdate() async {
+        guard Date.now.timeIntervalSince1970 - lastUpdateCheck > 86_400 else { return }
+        let url = URL(string: "https://api.github.com/repos/dinhthaidaica/CurrencyPop/releases/latest")!
+        guard let (data, _) = try? await URLSession.shared.data(from: url),
+              let release = try? JSONDecoder().decode(LatestRelease.self, from: data) else { return }
+        // Only on success, so a failed check retries on the next open instead
+        // of going quiet for a day.
+        lastUpdateCheck = Date.now.timeIntervalSince1970
+        latestTag = release.tagName
+        latestURL = release.htmlUrl
     }
 
     // MARK: Rates

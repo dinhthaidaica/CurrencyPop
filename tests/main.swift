@@ -68,5 +68,20 @@ if var cached = decoded {
     check(round == cached, "cache survives the round trip")
 }
 
+// version comparison for the update notice
+check(isNewer("v1.2", than: "1.1"), "a newer minor")
+check(isNewer("v1.10", than: "1.9"), "ten is newer than nine, where a string compare disagrees")
+check(isNewer("v2.0", than: "1.9.9"), "a newer major")
+check(isNewer("v1.2.1", than: "1.2"), "a newer patch on a two-part version")
+check(!isNewer("v1.1", than: "1.1"), "the same version is not newer")
+check(!isNewer("v1.0", than: "1.1"), "an older version is not newer")
+check(!isNewer("", than: "1.1"), "an empty tag is not newer")
+check(!isNewer("nightly", than: "1.1"), "an unparseable tag is not newer")
+
+let releasePayload = Data(#"{"tag_name":"v1.2","html_url":"https://example.com/r/v1.2","name":"x"}"#.utf8)
+let release = try? JSONDecoder().decode(LatestRelease.self, from: releasePayload)
+check(release?.tagName == "v1.2", "decodes the release tag")
+check(release?.htmlUrl == "https://example.com/r/v1.2", "decodes the release page URL")
+
 print(failures == 0 ? "\nall checks passed" : "\n\(failures) failed")
 exit(failures == 0 ? 0 : 1)
