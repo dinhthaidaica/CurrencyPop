@@ -299,10 +299,12 @@ struct ConversionRow: View {
         }
     }
 
-    /// The running total, shown only when the field holds more than a plain number.
+    /// The running total, shown when the field holds more than a plain number:
+    /// an operator, or a "." or "," whose reading ("1.250" as 1250 or 1.25)
+    /// should be visible rather than guessed silently.
     @State private var lastSubtotal: String?
     private var subtotal: String? {
-        guard conversion.input.contains(where: { "+-*/".contains($0) }) else { return nil }
+        guard conversion.input.contains(where: { "+-*/.,".contains($0) }) else { return nil }
         guard let amount else { return lastSubtotal }
         return formatAmount(amount, conversion.from)
     }
