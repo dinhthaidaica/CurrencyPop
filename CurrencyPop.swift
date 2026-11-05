@@ -108,12 +108,23 @@ struct ConverterView: View {
             Text(footer)
                 .font(.system(size: 9.5, design: .monospaced))
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .help("ECB rates via frankfurter.dev; VND from fawazahmed0's currency-api")
         }
     }
 
     /// Once for the whole panel: every row converts with the same table.
     private var footer: String {
-        rates.map { "ECB rate \(shortDate($0.date))" + (offline ? " · offline" : "") } ?? ""
+        guard let rates else { return "" }
+        let source: String
+        if let vndDate = rates.vndDate, rows.contains(where: { $0.from == "VND" || $0.to == "VND" }) {
+            // Kept short; the tooltip names the source.
+            source = "ECB \(shortDate(rates.date)) · VND \(shortDate(vndDate))"
+        } else {
+            source = "ECB rate \(shortDate(rates.date))"
+        }
+        return source + (offline ? " · offline" : "")
     }
 
     /// A new row starts on the last row's pair, the likeliest one to want again.
@@ -178,13 +189,19 @@ struct ConverterView: View {
     private func loadRates() async {
         let cached = decodeCache()
         if let cached { rates = cached }                       // show something immediately
-        if let at = cached?.fetchedAt, Date.now.timeIntervalSince(at) < 3600 { return }
+        // ponytail: the VND check only bites until currency-api has answered once;
+        // after that a cache with VND in it waits out the hour like any other.
+        // If it never answers, every open refetches both; the cache still shows first.
+        if let at = cached?.fetchedAt, Date.now.timeIntervalSince(at) < 3600,
+           cached?.rates["VND"] != nil { return }
 
         do {
+            async let vnd = fetchVND()
             let url = URL(string: "https://api.frankfurter.dev/v1/latest?base=EUR")!
             let (data, _) = try await URLSession.shared.data(from: url)
             var fresh = try JSONDecoder().decode(RateSet.self, from: data)
             fresh.rates["EUR"] = 1.0                           // the base is not in the payload
+            fresh.addVND(await vnd, keeping: cached)
             fresh.fetchedAt = .now
             rates = fresh
             // A currency can leave the ECB list between launches.
@@ -199,6 +216,15 @@ struct ConverterView: View {
         } catch {
             offline = rates != nil                             // stale rates still convert
         }
+    }
+
+    /// The one rate the ECB table lacks. nil on any failure; the merge then keeps the cached one.
+    private func fetchVND() async -> VNDQuote? {
+        let url = URL(string: "https://latest.currency-api.pages.dev/v1/currencies/eur.json")!
+        // 5s idle, not the default 60: the ECB rates wait on this before they reach the screen.
+        guard let (data, _) = try? await URLSession.shared.data(for: URLRequest(url: url, timeoutInterval: 5))
+        else { return nil }
+        return try? JSONDecoder().decode(VNDQuote.self, from: data)
     }
 
     private func decodeCache() -> RateSet? {
@@ -392,7 +418,7 @@ struct ConversionRow: View {
         .help("Copy the converted amount (⇧⌘C)")
     }
 
-    /// The ECB date and offline mark sit once in the panel's bottom bar.
+    /// The ECB date, the VND date and the offline mark sit once in the panel's bottom bar.
     private var footnote: String {
         guard let rates, let unit = convert(1, from: conversion.from, to: conversion.to,
                                             rates: rates.rates) else {

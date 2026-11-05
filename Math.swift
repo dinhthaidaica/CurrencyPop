@@ -6,6 +6,14 @@ struct RateSet: Codable, Equatable {
     let date: String                // ECB rate date, "2026-10-28"
     var rates: [String: Double]     // ["USD": 1.08, ...]
     var fetchedAt: Date?            // absent from the API, set when cached
+    var vndDate: String?            // currency-api's date for the VND rate, nil until it has answered once
+
+    /// VND is the one rate not from the ECB. A failed VND fetch keeps the cached
+    /// rate and date, so the "currency left the list" reset does not wipe a VND row.
+    mutating func addVND(_ quote: VNDQuote?, keeping cached: RateSet?) {
+        rates["VND"] = quote?.eur.vnd ?? cached?.rates["VND"]
+        vndDate = quote?.date ?? cached?.vndDate
+    }
 }
 
 /// One row of the panel. The id lets SwiftUI tell rows apart when a middle one
@@ -39,7 +47,7 @@ extension Array: @retroactive RawRepresentable where Element == Conversion {
 let fallbackCurrencies = ["AUD", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "EUR", "GBP",
                           "HKD", "HUF", "IDR", "ILS", "INR", "ISK", "JPY", "KRW", "MXN",
                           "MYR", "NOK", "NZD", "PHP", "PLN", "RON", "SEK", "SGD", "THB",
-                          "TRY", "USD", "ZAR"]
+                          "TRY", "USD", "VND", "ZAR"]
 
 func currencyName(_ code: String) -> String {
     Locale.current.localizedString(forCurrencyCode: code) ?? code
@@ -54,6 +62,14 @@ struct LatestRelease: Codable, Equatable {
         case tagName = "tag_name"
         case htmlUrl = "html_url"
     }
+}
+
+/// What latest.currency-api.pages.dev/v1/currencies/eur.json sends, cut down to
+/// the one rate read from it. Keys there are lower case.
+struct VNDQuote: Decodable {
+    let date: String
+    let eur: Leg
+    struct Leg: Decodable { let vnd: Double }
 }
 
 /// Compares "v1.10" against "1.9" numerically, component by component, so the

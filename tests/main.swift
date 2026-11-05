@@ -62,11 +62,47 @@ check(decoded?.rates["DKK"] == 7.4742, "decodes the rate table")
 check(decoded?.fetchedAt == nil, "fetchedAt is absent from the API")
 if var cached = decoded {
     cached.fetchedAt = Date(timeIntervalSince1970: 1)
+    cached.vndDate = "2026-11-04"
     let round = (try? JSONEncoder().encode(cached)).flatMap {
         try? JSONDecoder().decode(RateSet.self, from: $0)
     }
     check(round == cached, "cache survives the round trip")
 }
+// a cache written before VND existed
+let oldCache = Data(#"{"date":"2026-10-27","rates":{"USD":1.1619,"EUR":1.0},"fetchedAt":1}"#.utf8)
+let old = try? JSONDecoder().decode(RateSet.self, from: oldCache)
+check(old?.rates["USD"] == 1.1619, "an ECB-only cache still decodes")
+check(old != nil && old?.vndDate == nil, "an ECB-only cache has no VND date")
+
+// the shape currency-api actually sends, merged into the ECB table
+let vndPayload = Data(#"{"date":"2026-11-04","eur":{"usd":1.1224,"vnd":28897.976603,"btc":0.0000105}}"#.utf8)
+let quote = try? JSONDecoder().decode(VNDQuote.self, from: vndPayload)
+check(quote?.date == "2026-11-04", "decodes the currency-api date")
+check(quote?.eur.vnd == 28897.976603, "decodes the VND rate among the others")
+
+let ecb = RateSet(date: "2026-11-03", rates: ["EUR": 1.0, "USD": 1.1619], fetchedAt: nil)
+var merged = ecb
+merged.addVND(quote, keeping: nil)
+check(merged.rates["VND"] == 28897.976603, "VND joins the rate table")
+check(merged.vndDate == "2026-11-04", "VND brings its own date")
+check(merged.rates["USD"] == 1.1619 && merged.date == "2026-11-03", "ECB rates are untouched")
+check(near(convert(100, from: "USD", to: "VND", rates: merged.rates), 2487131.130),
+      "USD to VND crosses the merged table through EUR")
+
+var stale = ecb
+stale.rates["VND"] = 27000
+stale.vndDate = "2026-11-01"
+var refreshed = ecb
+refreshed.addVND(quote, keeping: stale)
+check(refreshed.rates["VND"] == 28897.976603 && refreshed.vndDate == "2026-11-04",
+      "a fresh quote replaces the cached one")
+var failed = ecb
+failed.addVND(nil, keeping: stale)
+check(failed.rates["VND"] == 27000 && failed.vndDate == "2026-11-01",
+      "a failed VND fetch keeps the cached rate and date")
+var none = ecb
+none.addVND(nil, keeping: nil)
+check(none.rates["VND"] == nil && none.vndDate == nil, "no quote and no cache means no VND")
 
 // the row list the panel stores, and what @AppStorage falls back on
 let rows = [Conversion(input: "1250+300*2", from: "DKK", to: "VND"), Conversion()]

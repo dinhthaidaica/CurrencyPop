@@ -32,14 +32,18 @@ by hand, which is the whole reason the source stays this small.
 ## How it works
 
 - **Rates** come from [frankfurter.dev](https://frankfurter.dev), which serves
-  European Central Bank reference rates. No API key. One fetch of the
+  European Central Bank reference rates. No API key. One
   EUR-based table covers every pair by cross rate, refreshed hourly and
   cached in `UserDefaults`, so switching currencies never waits on the
-  network and stale rates still convert when offline.
+  network and stale rates still convert when offline. VND, which the ECB
+  does not publish, comes from fawazahmed0's
+  [currency-api](https://github.com/fawazahmed0/exchange-api) (CC0, also
+  keyless); the footer shows its own date while a row shows VND,
+  and a failed VND fetch keeps the last cached rate.
 - **Rows** stack inside the one panel: each has its own amount, pair and
   result; `+` (⌘N) adds one below, `×` removes one, and the list is stored
   as JSON in `UserDefaults`, so the panel reopens exactly as you left it.
-  One hourly rate fetch serves every row, and past the screen's height the
+  One hourly rate refresh serves every row, and past the screen's height the
   rows scroll.
 - **Arithmetic** in the amount field is evaluated by `NSExpression`, guarded
   by a regex that only admits a complete flat expression. That guard is not
@@ -53,7 +57,8 @@ by hand, which is the whole reason the source stays this small.
 - **Updates** are checked once a day against this repository's releases
   page. When a newer tag exists the panel shows a line offering the
   download; it never installs anything on its own. That daily request to
-  `api.github.com` is the only network traffic besides the rate fetch.
+  `api.github.com` is the only network traffic besides the two rate fetches
+  (frankfurter.dev and currency-api).
 
 ## Files
 
