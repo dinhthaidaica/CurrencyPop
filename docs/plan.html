@@ -189,7 +189,7 @@
       <div><span>Target</span>macOS 14+</div>
       <div><span>Stack</span>Swift · SwiftUI</div>
       <div><span>Dependencies</span>none</div>
-      <div><span>Rates</span>frankfurter.dev</div>
+      <div><span>Rates</span>frankfurter.dev + currency-api</div>
       <div><span>Build time</span>~1 hour</div>
     </div>
   </header>
@@ -247,7 +247,7 @@
           <text x="301" y="266" font-family="var(--mono)" font-size="9" letter-spacing="1.2" fill="var(--muted)">CONVERTS TO</text>
           <text x="301" y="296" font-family="var(--mono)" font-size="26" fill="var(--accent)">7,076,250</text>
           <text x="559" y="296" text-anchor="end" font-family="var(--sans)" font-size="14" fill="var(--muted)">₫</text>
-          <text x="301" y="314" font-family="var(--mono)" font-size="9.5" fill="var(--muted)">ECB rate 28 Oct · 1 DKK = 3,825.00 ₫</text>
+          <text x="301" y="314" font-family="var(--mono)" font-size="9.5" fill="var(--muted)">ECB 28 Oct · VND 28 Oct · 1 DKK = 3,825.00 ₫</text>
 
           <!-- annotations -->
           <path d="M268 100h21" stroke="var(--muted)" stroke-dasharray="2 3"/>
@@ -361,7 +361,7 @@ func evaluate(_ raw: String) -> Double? {
 struct Rates: Codable {
     let base: String
     let date: String                 // "2026-10-28"
-    let rates: [String: Double]      // ["VND": 3825.0, ...]
+    let rates: [String: Double]      // ["USD": 0.1459, ...]
 }</pre>
         </div>
       </li>
@@ -381,13 +381,13 @@ struct Rates: Codable {
         <tr><th>Question</th><th>Answer</th></tr>
         <tr><td>Who</td><td>frankfurter.dev — open source, serves European Central Bank reference rates</td></tr>
         <tr><td>Key</td><td>None. No account, no header, no rate limit to speak of</td></tr>
-        <tr><td>Coverage</td><td>~30 currencies: EUR, USD, GBP, DKK, SEK, NOK, JPY, VND and the rest of the ECB list. No crypto</td></tr>
+        <tr><td>Coverage</td><td>~30 currencies: EUR, USD, GBP, DKK, SEK, NOK, JPY and the rest of the ECB list, plus VND from currency-api. No crypto</td></tr>
         <tr><td>Freshness</td><td>Updated once per working day, around 16:00 CET. Weekend rates are Friday's</td></tr>
         <tr><td>Good for</td><td>Travel math, invoices, "is this expensive"</td></tr>
         <tr><td>Not for</td><td>Trading, or anything where the second decimal is money</td></tr>
       </table>
     </div>
-    <p style="margin-top:14px">If a currency outside the ECB list matters later, swapping in a keyed API is a change to one function.</p>
+    <p style="margin-top:14px">VND, which the ECB does not publish, comes from a second keyless source, fawazahmed0's currency-api, merged into the same EUR-based table. Another currency outside the ECB list could join the same way, without a keyed API.</p>
   </section>
 
   <section class="fork">
