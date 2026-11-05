@@ -45,6 +45,7 @@ struct ConverterView: View {
     // ⌘S and ⇧⌘C stay here when focus leaves the fields; only the amount fields move it,
     // so tabbing onto another row's picker leaves them on the last row typed in.
     @State private var lastFocused: UUID?
+    @State private var rowsHeight: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -62,11 +63,15 @@ struct ConverterView: View {
                             }
                         }
                     }
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
                 }
-                // Past the smallest screen's height the rows scroll; the margin keeps
-                // the bottom bar and the update notice on screen. Smallest, because
-                // NSScreen.main follows the key window, which may be on another display.
-                .frame(maxHeight: (NSScreen.screens.map(\.visibleFrame.height).min() ?? 800) - 140)
+                // A fixed height, not just a cap: the menu bar panel sizes itself from
+                // the smallest height its content accepts, and a bare ScrollView
+                // accepts zero, which hid every row. Past the smallest screen's height
+                // the rows scroll; the margin keeps the bottom bar and the update
+                // notice on screen. Smallest, because NSScreen.main follows the key
+                // window, which may be on another display.
+                .frame(height: min(rowsHeight, (NSScreen.screens.map(\.visibleFrame.height).min() ?? 800) - 140))
                 .onChange(of: rows.count) { old, new in
                     if new > old, let id = rows.last?.id { proxy.scrollTo(id, anchor: .bottom) }
                 }
