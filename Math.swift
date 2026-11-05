@@ -79,12 +79,12 @@ func isNewer(_ tag: String, than current: String) -> Bool {
 /// regex is the whole safety story: only a complete flat expression reaches it.
 func evaluate(_ raw: String) -> Double? {
     let s = raw.filter { !$0.isWhitespace }
-    guard s.range(of: #"^\d+(\.\d+)?([-+*/]\d+(\.\d+)?)*$"#,
+    guard s.range(of: #"^[0-9]+(\.[0-9]+)?([-+*/][0-9]+(\.[0-9]+)?)*$"#,
                   options: .regularExpression) != nil else { return nil }
 
     // NSExpression does integer division on integer literals ("100/3" -> 33),
     // so give every whole number a decimal point first.
-    let decimals = s.replacingOccurrences(of: #"(?<![.\d])(\d+)(?![.\d])"#,
+    let decimals = s.replacingOccurrences(of: #"(?<![.0-9])([0-9]+)(?![.0-9])"#,
                                           with: "$1.0", options: .regularExpression)
     let value = (NSExpression(format: decimals)
         .expressionValue(with: nil, context: nil) as? NSNumber)?.doubleValue

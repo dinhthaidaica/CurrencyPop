@@ -33,6 +33,9 @@ check(evaluate("1+%d") == nil, "format specifier")
 check(evaluate("10%3") == nil, "percent")
 check(evaluate("rm -rf /") == nil, "junk")
 check(evaluate("1/0") == nil, "division by zero")
+check(evaluate("٢.٥") == nil, "Arabic-Indic digits never reach NSExpression")
+check(evaluate("٢٥٠") == nil, "Arabic-Indic whole number")
+check(evaluate("1.٢٥٠") == nil, "ASCII and Arabic-Indic digits mixed")
 
 // convert
 check(near(convert(100, from: "USD", to: "EUR", rates: ["USD": 1.08, "EUR": 1.0]), 92.5926),
