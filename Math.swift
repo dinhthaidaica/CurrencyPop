@@ -8,6 +8,32 @@ struct RateSet: Codable, Equatable {
     var fetchedAt: Date?            // absent from the API, set when cached
 }
 
+/// One row of the panel. The id lets SwiftUI tell rows apart when a middle one
+/// is removed; the amount is kept as typed, expression and all.
+/// Public only because Swift wants Array's RawRepresentable conformance below
+/// public, and that conformance names this type.
+public struct Conversion: Codable, Equatable, Identifiable {
+    public var id = UUID()
+    var input = "100"
+    var from = "USD"
+    var to = "EUR"
+}
+
+/// Lets @AppStorage keep the whole row list as one JSON string.
+extension Array: @retroactive RawRepresentable where Element == Conversion {
+    /// nil for an empty list as well as a corrupt one, so @AppStorage falls back
+    /// to its default row and the panel never opens with no rows at all.
+    public init?(rawValue: String) {
+        guard let rows = try? JSONDecoder().decode([Conversion].self, from: Data(rawValue.utf8)),
+              !rows.isEmpty else { return nil }
+        self = rows
+    }
+
+    public var rawValue: String {
+        (try? JSONEncoder().encode(self)).map { String(decoding: $0, as: UTF8.self) } ?? "[]"
+    }
+}
+
 /// Shown until the first fetch answers; after that the live rate table decides,
 /// because the ECB does drop currencies (BGN left when Bulgaria joined the euro).
 let fallbackCurrencies = ["AUD", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "EUR", "GBP",
