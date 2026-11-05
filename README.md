@@ -2,7 +2,8 @@
 
 A macOS menu bar popover that converts an amount — or a bit of arithmetic —
 between currencies. Click the ⇄ icon, type `1250+300*2`, read the number,
-click away. No window, no Dock icon, no sign-in, no dependencies.
+click away. Need a second pair? Add a row. No window, no Dock icon, no
+sign-in, no dependencies.
 
 ## Install
 
@@ -35,6 +36,11 @@ by hand, which is the whole reason the source stays this small.
   EUR-based table covers every pair by cross rate, refreshed hourly and
   cached in `UserDefaults`, so switching currencies never waits on the
   network and stale rates still convert when offline.
+- **Rows** stack inside the one panel: each has its own amount, pair and
+  result; `+` (⌘N) adds one below, `×` removes one, and the list is stored
+  as JSON in `UserDefaults`, so the panel reopens exactly as you left it.
+  One hourly rate fetch serves every row, and past the screen's height the
+  rows scroll.
 - **Arithmetic** in the amount field is evaluated by `NSExpression`, guarded
   by a regex that only admits a complete flat expression. That guard is not
   cosmetic: `NSExpression` raises an Objective-C exception on malformed
@@ -53,9 +59,9 @@ by hand, which is the whole reason the source stays this small.
 
 | File | What it holds |
 | --- | --- |
-| `Math.swift` | Expression evaluation, cross-rate conversion, formatting, the rate model. No UI imports, so the checks can run against it. |
-| `CurrencyPop.swift` | `MenuBarExtra` scene and the panel. |
-| `tests/main.swift` | 26 assertions, run with `./build.sh test`. |
+| `Math.swift` | Expression evaluation, cross-rate conversion, formatting, the rate model and the row list. No UI imports, so the checks can run against it. |
+| `CurrencyPop.swift` | `MenuBarExtra` scene, the panel and one conversion row. |
+| `tests/main.swift` | 42 assertions, run with `./build.sh test`. |
 | `build.sh` | Compile, assemble the bundle, ad-hoc sign. |
 | `release.sh` | Sign with a Developer ID, notarise, staple, publish a GitHub release. |
 | `tools/makeicon.swift` | Regenerates `CurrencyPop.icns`. Only needed if the mark changes. |
@@ -73,8 +79,8 @@ refuses to start without the certificate.
 
 ## Deliberately left out
 
-Parentheses and `%` in the field, crypto, rate history, favourites, a
-preferences window, launch at login. Each has a trigger for adding it in
+Parentheses and `%` in the field, crypto, rate history, a preferences
+window, launch at login. Each has a trigger for adding it in
 `docs/plan.html`.
 
 ## License
