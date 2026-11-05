@@ -45,7 +45,12 @@ by hand, which is the whole reason the source stays this small.
   by a regex that only admits a complete flat expression. That guard is not
   cosmetic: `NSExpression` raises an Objective-C exception on malformed
   input that Swift cannot catch, and a field being typed into is malformed
-  on most keystrokes.
+  on most keystrokes. Before that, each number has its `.` and `,` sorted
+  out: the last of two marks is the decimal (`1.234,56` and `1,234.56`), a
+  repeated mark is grouping, and a single mark after one to three digits
+  and before exactly three (`1.250`) follows the Mac's locale, while
+  `0.125` is always a decimal. Whenever the field holds a separator,
+  the `= …` line above it shows how the number was read.
 - **Precision** follows the currency, not the size of the number: cents on
   USD and øre on DKK at any magnitude, none on VND or JPY, which have no
   minor unit. ECB rates themselves update once per working day — good for

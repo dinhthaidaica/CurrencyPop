@@ -273,10 +273,12 @@ struct ConversionRow: View {
         }
     }
 
-    /// The running total, shown only when the field holds more than a plain number.
+    /// The running total, shown when the field holds more than a plain number:
+    /// an operator, or a "." or "," whose reading ("1.250" as 1250 or 1.25)
+    /// should be visible rather than guessed silently.
     @State private var lastSubtotal: String?
     private var subtotal: String? {
-        guard conversion.input.contains(where: { "+-*/".contains($0) }) else { return nil }
+        guard conversion.input.contains(where: { "+-*/.,".contains($0) }) else { return nil }
         guard let amount else { return lastSubtotal }
         return formatAmount(amount, conversion.from)
     }
@@ -357,6 +359,11 @@ struct ConversionRow: View {
                     // Nothing shares this line but the currency code, so eleven
                     // digits of rupiah fit before the scale factor has to bite.
                     .minimumScaleFactor(0.5)
+                    // The last good result is kept while you retype, but dimmed:
+                    // full strength it read as the answer for what the field holds
+                    // (176 DKK shown as if it were 176,12 DKK).
+                    .opacity(result == nil ? 0.35 : 1)
+                    .accessibilityValue(result == nil && displayed != nil ? "out of date" : "")
                 Text(conversion.to)
                     .font(.system(size: 15))
                     .foregroundStyle(.secondary)
@@ -386,7 +393,7 @@ struct ConversionRow: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(displayed == nil)
+        .disabled(result == nil)
         // ⌘C stays with the field
         .keyboardShortcut(hasShortcuts ? KeyboardShortcut("c", modifiers: [.command, .shift]) : nil)
         .help("Copy the converted amount (⇧⌘C)")
@@ -402,9 +409,9 @@ struct ConversionRow: View {
     }
 
     private func copyResult() {
-        guard let displayed else { return }
+        guard let result else { return }   // never the stale, dimmed value
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(formatAmount(displayed, conversion.to), forType: .string)
+        NSPasteboard.general.setString(formatAmount(result, conversion.to), forType: .string)
         withAnimation { copied = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             withAnimation { copied = false }
