@@ -68,6 +68,18 @@ if var cached = decoded {
     check(round == cached, "cache survives the round trip")
 }
 
+// the row list the panel stores, and what @AppStorage falls back on
+let rows = [Conversion(input: "1250+300*2", from: "DKK", to: "VND"), Conversion()]
+check([Conversion](rawValue: rows.rawValue) == rows, "rows survive the round trip")
+check([Conversion](rawValue: "[]") == nil, "an empty list is no list, so the default row is used")
+check([Conversion](rawValue: "nonsense") == nil, "corrupt storage falls back to the default row")
+check(Conversion().id != Conversion().id, "every row has its own identity")
+// the exact shape JSONEncoder writes to UserDefaults today, so a format change shows up here
+let stored = #"[{"id":"0B5C3E1A-7F4D-4C2B-9E8A-1D2F3A4B5C6D","input":"250","from":"DKK","to":"VND"}]"#
+check([Conversion](rawValue: stored)?.first?.id.uuidString == "0B5C3E1A-7F4D-4C2B-9E8A-1D2F3A4B5C6D",
+      "a list already on disk still decodes")
+check([Conversion](rawValue: stored)?.first?.to == "VND", "a list already on disk keeps its pair")
+
 // version comparison for the update notice
 check(isNewer("v1.2", than: "1.1"), "a newer minor")
 check(isNewer("v1.10", than: "1.9"), "ten is newer than nine, where a string compare disagrees")
