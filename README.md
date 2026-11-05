@@ -61,7 +61,7 @@ by hand, which is the whole reason the source stays this small.
 | --- | --- |
 | `Math.swift` | Expression evaluation, cross-rate conversion, formatting, the rate model and the row list. No UI imports, so the checks can run against it. |
 | `CurrencyPop.swift` | `MenuBarExtra` scene, the panel and one conversion row. |
-| `tests/main.swift` | 42 assertions, run with `./build.sh test`. |
+| `tests/main.swift` | Plain assertions, run with `./build.sh test`. |
 | `build.sh` | Compile, assemble the bundle, ad-hoc sign. |
 | `release.sh` | Sign with a Developer ID, notarise, staple, publish a GitHub release. |
 | `tools/makeicon.swift` | Regenerates `CurrencyPop.icns`. Only needed if the mark changes. |
