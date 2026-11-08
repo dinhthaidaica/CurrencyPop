@@ -37,6 +37,14 @@ fi
 ./build.sh test
 ./build.sh
 
+# The running app compares its version with the tag, so a tag ahead of the
+# bundle would offer the same update forever.
+BUILT=$(plutil -extract CFBundleShortVersionString raw "$APP/Contents/Info.plist")
+[ "$BUILT" = "${TAG#v}" ] || { echo "build.sh says $BUILT, tag is $TAG: bump CFBundleShortVersionString first" >&2; exit 1; }
+
+# The in-app updater only accepts a bundle with this CFBundleIdentifier signed
+# by this team; change either and existing installs fall back to the download link.
+# It also finds the update by these names: $ZIP holding $APP at its root.
 # --options runtime is the hardened runtime; notarisation refuses a build without it.
 codesign --force --options runtime --timestamp --sign "$IDENTITY" "$APP"
 codesign --verify --strict --verbose=2 "$APP"
