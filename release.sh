@@ -53,9 +53,13 @@ rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
 spctl --assess --type execute --verbose "$APP"
 
-gh release create "$TAG" "$ZIP" \
-  --title "CurrencyPop $TAG" \
-  --generate-notes
+# Hand-written notes when notes/<tag>.md exists, otherwise let GitHub list the
+# commits. A release people are asked to install deserves the former.
+if [ -f "notes/$TAG.md" ]; then
+  gh release create "$TAG" "$ZIP" --title "CurrencyPop $TAG" --notes-file "notes/$TAG.md"
+else
+  gh release create "$TAG" "$ZIP" --title "CurrencyPop $TAG" --generate-notes
+fi
 
 rm -f "$ZIP"
 echo "released $TAG"
