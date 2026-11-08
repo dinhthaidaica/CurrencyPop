@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 /// What api.frankfurter.dev returns, plus when we stored it.
 /// Every rate is relative to EUR, so one fetch covers every pair.
@@ -70,6 +71,70 @@ struct VNDQuote: Decodable {
     let date: String
     let eur: Leg
     struct Leg: Decodable { let vnd: Double }
+}
+
+struct UpdateError: Error {
+    let reason: String
+}
+
+/// True only when `candidate` is validly signed and meets the designated
+/// requirement of `reference`: for a Developer ID build, the same bundle
+/// identifier signed by the same team. Any error counts as a mismatch, and an
+/// ad-hoc build's requirement is its own hash, so nothing else ever matches it.
+func signatureMatches(candidate: URL, reference: URL) -> Bool {
+    var ref: SecStaticCode?, new: SecStaticCode?, requirement: SecRequirement?
+    guard SecStaticCodeCreateWithPath(reference as CFURL, [], &ref) == errSecSuccess, let ref,
+          SecCodeCopyDesignatedRequirement(ref, [], &requirement) == errSecSuccess, let requirement,
+          SecStaticCodeCreateWithPath(candidate as CFURL, [], &new) == errSecSuccess, let new
+    else { return false }
+    let flags = SecCSFlags(rawValue: kSecCSCheckAllArchitectures | kSecCSStrictValidate | kSecCSCheckNestedCode)
+    return SecStaticCodeCheckValidity(new, flags, requirement) == errSecSuccess
+}
+
+/// True when the code at `url` is signed with a team ID, as a Developer ID build
+/// is. Platform binaries, ad-hoc builds and missing code have none.
+func hasTeamID(_ url: URL) -> Bool {
+    var code: SecStaticCode?, info: CFDictionary?
+    guard SecStaticCodeCreateWithPath(url as CFURL, [], &code) == errSecSuccess, let code,
+          SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess
+    else { return false }
+    return (info as? [String: Any])?[kSecCodeInfoTeamIdentifier as String] != nil
+}
+
+/// Unpacks the release zip next to `app` and swaps it in. Anything not signed
+/// like the running app is refused, so a tampered download cannot replace it,
+/// and so is a bundle older than `tag`, so an old signed build attached to a
+/// new release cannot downgrade it; every failure throws before the bundle on
+/// disk is touched.
+func replaceApp(at app: URL, withZip zip: URL, tag: String) async throws {
+    let files = FileManager.default
+    // On the app's own volume, so the final swap is a rename, not a copy.
+    let dir = try files.url(for: .itemReplacementDirectory, in: .userDomainMask,
+                            appropriateFor: app, create: true)
+    defer { try? files.removeItem(at: dir) }
+
+    let (download, _) = try await URLSession.shared.download(from: zip)
+    let archive = dir.appendingPathComponent("update.zip")
+    try files.moveItem(at: download, to: archive)
+
+    let ditto = Process()
+    ditto.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+    ditto.arguments = ["-x", "-k", archive.path, dir.path]
+    ditto.standardError = FileHandle.nullDevice
+    try ditto.run()
+    ditto.waitUntilExit()   // ponytail: blocks a pool thread for the unzip, a second at most
+    let new = dir.appendingPathComponent("CurrencyPop.app")  // release.sh zips this name, not the copy's
+    // Also what a failed unzip ends in: missing or partial code never matches.
+    guard signatureMatches(candidate: new, reference: app) else {
+        throw UpdateError(reason: "ditto exited \(ditto.terminationStatus); the download is not a CurrencyPop.app signed like this app")
+    }
+    // NSDictionary, not Bundle(url:), which caches by path.
+    let info = NSDictionary(contentsOf: new.appendingPathComponent("Contents/Info.plist"))
+    let version = info?["CFBundleShortVersionString"] as? String
+    guard let version, !isNewer(tag, than: version) else {
+        throw UpdateError(reason: "the download is version \(version ?? "none"), older than \(tag)")
+    }
+    _ = try files.replaceItemAt(app, withItemAt: new)
 }
 
 /// Compares "v1.10" against "1.9" numerically, component by component, so the
