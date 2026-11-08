@@ -60,16 +60,22 @@ by hand, which is the whole reason the source stays this small.
   minor unit. ECB rates themselves update once per working day — good for
   travel math and invoices, not for trading.
 - **Updates** are checked once a day against this repository's releases
-  page. When a newer tag exists the panel shows a line offering the
-  download; it never installs anything on its own. That daily request to
-  `api.github.com` is the only network traffic besides the two rate fetches
+  page. When a newer tag exists the panel shows a line with **Install &
+  relaunch**, which downloads the release zip and swaps the app in place,
+  but only if the new bundle is signed by the same team with the same
+  bundle identifier as the running one, and is at least the version its
+  tag names. From a folder or bundle it cannot write to, which includes a
+  translocated copy, from a build from source, or after a failed install,
+  it offers the download link instead; it never installs anything without
+  the click. That daily request to `api.github.com`, and the zip that
+  Install downloads, are the only network traffic besides the two rate fetches
   (frankfurter.dev and currency-api).
 
 ## Files
 
 | File | What it holds |
 | --- | --- |
-| `Math.swift` | Expression evaluation, cross-rate conversion, formatting, the rate model and the row list. No UI imports, so the checks can run against it. |
+| `Math.swift` | Expression evaluation, cross-rate conversion, formatting, the rate model, the row list, and the update download, signature check and swap. No UI imports, so the checks can run against it. |
 | `CurrencyPop.swift` | `MenuBarExtra` scene, the panel and one conversion row. |
 | `tests/main.swift` | Plain assertions, run with `./build.sh test`. |
 | `build.sh` | Compile, assemble the bundle, ad-hoc sign. |
@@ -85,7 +91,8 @@ by hand, which is the whole reason the source stays this small.
 
 Needs a Developer ID Application certificate in your keychain and a stored
 `notarytool` credential profile; `release.sh` explains both at the top and
-refuses to start without the certificate.
+refuses to start without the certificate. It also refuses when the tag does
+not match `CFBundleShortVersionString` in `build.sh`, so bump that first.
 
 ## Deliberately left out
 
