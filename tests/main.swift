@@ -161,10 +161,122 @@ check(!isNewer("v1.0", than: "1.1"), "an older version is not newer")
 check(!isNewer("", than: "1.1"), "an empty tag is not newer")
 check(!isNewer("nightly", than: "1.1"), "an unparseable tag is not newer")
 
+check(!isNewer("v1.2.0", than: "1.2"), "a trailing zero is the same version")
+check(isNewer("v1.2", than: "0"), "anything is newer than a build with no version")
+
 let releasePayload = Data(#"{"tag_name":"v1.2","html_url":"https://example.com/r/v1.2","name":"x"}"#.utf8)
 let release = try? JSONDecoder().decode(LatestRelease.self, from: releasePayload)
 check(release?.tagName == "v1.2", "decodes the release tag")
 check(release?.htmlUrl == "https://example.com/r/v1.2", "decodes the release page URL")
+
+// signatureMatches: fails closed on anything it cannot vouch for
+let ls = URL(fileURLWithPath: "/bin/ls"), cat = URL(fileURLWithPath: "/bin/cat")
+let missing = URL(fileURLWithPath: "/nonexistent/CurrencyPop.app")
+check(signatureMatches(candidate: ls, reference: ls), "a binary matches itself")
+check(!signatureMatches(candidate: cat, reference: ls), "a different binary does not match")
+check(!signatureMatches(candidate: missing, reference: ls), "a missing candidate does not match")
+check(!signatureMatches(candidate: ls, reference: missing), "a missing reference does not match")
+
+// replaceApp, offline: file:// URLs stand in for the download
+func run(_ tool: String, _ args: String...) {
+    let p = Process()
+    p.executableURL = URL(fileURLWithPath: tool)
+    p.arguments = args
+    p.standardOutput = FileHandle.nullDevice
+    p.standardError = FileHandle.nullDevice
+    // A setup step that fails would let the refusal checks below pass for the wrong reason.
+    guard (try? p.run()) != nil else { return check(false, "\(tool) launches") }
+    p.waitUntilExit()
+    if p.terminationStatus != 0 { check(false, "\(tool) \(args[0]) succeeds") }
+}
+
+/// A minimal ad-hoc signed bundle; the build number makes its signature unique.
+func makeBundle(at app: URL, build: String) {
+    let macOS = app.appendingPathComponent("Contents/MacOS")
+    try? FileManager.default.createDirectory(at: macOS, withIntermediateDirectories: true)
+    try? FileManager.default.copyItem(at: URL(fileURLWithPath: "/usr/bin/true"),
+                                      to: macOS.appendingPathComponent("CurrencyPop"))
+    let plist: [String: String] = ["CFBundleIdentifier": "dev.local.currencypop",
+                                   "CFBundleExecutable": "CurrencyPop", "CFBundleVersion": build,
+                                   "CFBundleShortVersionString": "1.0"]
+    try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+        .write(to: app.appendingPathComponent("Contents/Info.plist"))
+    run("/usr/bin/codesign", "--force", "--sign", "-", app.path)
+}
+
+func zipApp(_ app: URL, to archive: URL) {
+    run("/usr/bin/ditto", "-c", "-k", "--keepParent", app.path, archive.path)
+}
+
+func inode(_ url: URL) -> Int? {
+    (try? FileManager.default.attributesOfItem(atPath: url.path))?[.systemFileNumber] as? Int
+}
+
+func installs(_ app: URL, from zip: URL, tag: String = "v1.0") async -> Bool {
+    (try? await replaceApp(at: app, withZip: zip, tag: tag)) != nil
+}
+
+let sandbox = FileManager.default.temporaryDirectory.appendingPathComponent("currencypop-\(UUID())")
+let installed = sandbox.appendingPathComponent("installed/CurrencyPop.app")
+makeBundle(at: installed, build: "1")
+check(signatureMatches(candidate: installed, reference: installed), "the test bundle is validly signed")
+check(!hasTeamID(ls) && !hasTeamID(installed) && !hasTeamID(missing), "platform, ad-hoc and missing code have no team ID")
+check(CommandLine.arguments.dropFirst().first.map { hasTeamID(URL(fileURLWithPath: $0)) } ?? false,
+      "the Apple-signed compiler build.sh passes has a team ID")
+let before = inode(installed)
+
+let junk = sandbox.appendingPathComponent("junk.zip")
+try? Data("not a zip".utf8).write(to: junk)
+check(!(await installs(installed, from: junk)), "a download that is not a zip is refused")
+check(inode(installed) == before, "a refused non-zip leaves the app alone")
+
+check(!(await installs(installed, from: sandbox.appendingPathComponent("absent.zip"))),
+      "a download that fails is refused")
+check(inode(installed) == before, "a failed download leaves the app alone")
+
+let other = sandbox.appendingPathComponent("other/CurrencyPop.app")
+makeBundle(at: other, build: "2")
+let otherZip = sandbox.appendingPathComponent("other.zip")
+zipApp(other, to: otherZip)
+check(!(await installs(installed, from: otherZip)), "a bundle signed by someone else is refused")
+check(inode(installed) == before, "a refused signature leaves the app alone")
+
+let renamed = sandbox.appendingPathComponent("renamed/Other.app")
+try? FileManager.default.createDirectory(at: renamed.deletingLastPathComponent(), withIntermediateDirectories: true)
+try? FileManager.default.copyItem(at: installed, to: renamed)
+let renamedZip = sandbox.appendingPathComponent("renamed.zip")
+zipApp(renamed, to: renamedZip)
+check(!(await installs(installed, from: renamedZip)), "a zip without CurrencyPop.app inside is refused")
+check(inode(installed) == before, "a zip without CurrencyPop.app leaves the app alone")
+
+// Same signature, changed contents: only resource validation catches it.
+let tampered = sandbox.appendingPathComponent("tampered/CurrencyPop.app")
+let tamperedResources = tampered.appendingPathComponent("Contents/Resources")
+try? FileManager.default.createDirectory(at: tampered.deletingLastPathComponent(), withIntermediateDirectories: true)
+try? FileManager.default.copyItem(at: installed, to: tampered)
+try? FileManager.default.createDirectory(at: tamperedResources, withIntermediateDirectories: true)
+try? Data("added after signing".utf8).write(to: tamperedResources.appendingPathComponent("extra.txt"))
+let tamperedZip = sandbox.appendingPathComponent("tampered.zip")
+zipApp(tampered, to: tamperedZip)
+check(!(await installs(installed, from: tamperedZip)), "a bundle changed after signing is refused")
+check(inode(installed) == before, "a refused tampered bundle leaves the app alone")
+
+// An ad-hoc requirement is the bundle's own hash, so only an identical copy passes.
+let twinZip = sandbox.appendingPathComponent("twin.zip")
+zipApp(installed, to: twinZip)
+// The twin is 1.0: correctly signed, but older than the tag it was attached to.
+check(!(await installs(installed, from: twinZip, tag: "v1.1")), "a bundle older than its tag is refused")
+check(inode(installed) == before, "a refused downgrade leaves the app alone")
+check(await installs(installed, from: twinZip, tag: "v0.9"), "a bundle newer than its tag installs")
+check(await installs(installed, from: twinZip), "an identically signed bundle installs")
+check(inode(installed) != before && signatureMatches(candidate: installed, reference: installed),
+      "the app on disk is the new, still valid, bundle")
+let copy = sandbox.appendingPathComponent("copy/CurrencyPop 2.app")
+try? FileManager.default.createDirectory(at: copy.deletingLastPathComponent(), withIntermediateDirectories: true)
+try? FileManager.default.copyItem(at: installed, to: copy)
+check(await installs(copy, from: twinZip) && signatureMatches(candidate: copy, reference: installed),
+      "a renamed copy updates from CurrencyPop.app and keeps its name")
+try? FileManager.default.removeItem(at: sandbox)
 
 print(failures == 0 ? "\nall checks passed" : "\n\(failures) failed")
 exit(failures == 0 ? 0 : 1)

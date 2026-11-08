@@ -22,7 +22,7 @@ To have it start with your Mac: System Settings → General → Login Items →
 ```sh
 ./build.sh        # builds CurrencyPop.app next to the script
 ./build.sh run    # builds, then launches it
-./build.sh test   # runs the arithmetic, conversion and decoding checks
+./build.sh test   # runs the arithmetic, conversion and decoding checks, and the installer checks
 ```
 
 Requires Xcode command line tools. There is no Xcode project: `build.sh`
