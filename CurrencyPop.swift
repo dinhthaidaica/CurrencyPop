@@ -86,10 +86,8 @@ struct ConverterView: View {
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { focused = rows[0].id }
         }
-        .task {
-            await loadRates()
-            await checkForUpdate()
-        }
+        .task { await loadRates() }
+        .task { await checkForUpdate() }    // its own task, so a slow rate fetch does not hold it up
     }
 
     // MARK: Rows
@@ -176,9 +174,13 @@ struct ConverterView: View {
         guard Date.now.timeIntervalSince1970 - lastUpdateCheck > 86_400 else { return }
         let url = URL(string: "https://api.github.com/repos/dinhthaidaica/CurrencyPop/releases/latest")!
         guard let (data, _) = try? await URLSession.shared.data(from: url),
-              let release = try? JSONDecoder().decode(LatestRelease.self, from: data) else { return }
-        // Only on success, so a failed check retries on the next open instead
-        // of going quiet for a day.
+              let release = try? JSONDecoder().decode(LatestRelease.self, from: data) else {
+            if Task.isCancelled { return }      // the panel closed mid-request: not a failure
+            // Retry in an hour: not a day, which would go quiet on one blip, and
+            // not every open, which spends GitHub's unauthenticated rate limit.
+            lastUpdateCheck = Date.now.timeIntervalSince1970 - 86_400 + 3_600
+            return
+        }
         lastUpdateCheck = Date.now.timeIntervalSince1970
         latestTag = release.tagName
         latestURL = release.htmlUrl
