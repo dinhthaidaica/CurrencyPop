@@ -6,6 +6,14 @@ import AppKit
 let currentVersion = Bundle.main
     .object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
 
+/// Not from a bundle or a folder we cannot write to, which fails the swap; that
+/// includes Gatekeeper's read-only translocated copy. Nor from a build with no
+/// team ID, such as an ad-hoc build from source, whose signature no release can
+/// match. There only the link works.
+let canSelfUpdate = FileManager.default.isWritableFile(atPath: Bundle.main.bundlePath)
+    && FileManager.default.isWritableFile(atPath: Bundle.main.bundleURL.deletingLastPathComponent().path)
+    && hasTeamID(Bundle.main.bundleURL)
+
 /// The one accent in the panel, dark enough to read on white and light enough on black.
 let accent = Color(nsColor: NSColor(name: nil) { appearance in
     appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
@@ -38,6 +46,8 @@ struct ConverterView: View {
     @AppStorage("lastUpdateCheck") private var lastUpdateCheck = 0.0
     @AppStorage("latestTag") private var latestTag = ""
     @AppStorage("latestURL") private var latestURL = ""
+    @State private var installing = false
+    @State private var failedTag = ""
 
     @State private var rates: RateSet?
     @State private var offline = false
@@ -77,7 +87,7 @@ struct ConverterView: View {
                 }
             }
             bottomBar
-            if let update { updateNotice(update) }
+            if let update { updateNotice(update).padding(.top, 4) }
         }
         .padding(14)
         .frame(width: 340)
@@ -152,22 +162,60 @@ struct ConverterView: View {
         return (latestTag, url)
     }
 
+    /// Offers the install only where it can work; a release that failed to install
+    /// falls back to the download link for the rest of this run, a newer one does not.
+    /// As the link, the whole pill is clickable; as the install, only the button.
+    @ViewBuilder
     private func updateNotice(_ update: (tag: String, url: URL)) -> some View {
-        Link(destination: update.url) {
-            HStack(spacing: 5) {
-                Image(systemName: "arrow.down.circle")
-                Text("\(update.tag) available")
-                Spacer(minLength: 0)
+        let installable = canSelfUpdate && failedTag != update.tag
+        let pill = HStack(spacing: 5) {
+            Image(systemName: "arrow.down.circle")
+            Text(installing ? "Installing \(update.tag)…"
+                 : failedTag == update.tag ? "Couldn't install \(update.tag)" : "\(update.tag) available")
+            Spacer(minLength: 0)
+            if installable {
+                Button { Task { await install(tag: update.tag) } } label: { Text("Install & relaunch").underline() }
+                    .disabled(installing)
+            } else {
                 Text("Download").underline()
             }
-            .font(.system(size: 11))
-            .foregroundStyle(accent)
-            .padding(.vertical, 6)
-            .padding(.horizontal, 9)
-            .background(RoundedRectangle(cornerRadius: 7).fill(accent.opacity(0.12)))
         }
         .buttonStyle(.plain)
-        .padding(.top, 4)
+        .font(.system(size: 11))
+        .foregroundStyle(accent)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 9)
+        .background(RoundedRectangle(cornerRadius: 7).fill(accent.opacity(0.12)))
+        if installable { pill } else { Link(destination: update.url) { pill }.buttonStyle(.plain) }
+    }
+
+    /// The zip of `tag` itself, not releases/latest, so what installs is the version the notice names.
+    private func install(tag: String) async {
+        guard !installing else { return }   // .disabled lands a render late; a double-click gets here twice
+        installing = true
+        // release.sh uploads it under this name; a release without it fails once and falls back to the link
+        let zip = URL(string: "https://github.com/dinhthaidaica/CurrencyPop/releases/download")!
+            .appending(path: tag).appending(path: "CurrencyPop.zip")   // escapes a # or ? in the tag
+        do {
+            try await replaceApp(at: Bundle.main.bundleURL, withZip: zip, tag: tag)
+            relaunch()
+        } catch {
+            NSLog("CurrencyPop update failed: %@", "\(error)")
+            installing = false
+            failedTag = tag
+        }
+    }
+
+    /// Opens the new bundle once this process is gone; while it still runs,
+    /// `open` would only bring the old one forward.
+    private func relaunch() {
+        let shell = Process()
+        shell.executableURL = URL(fileURLWithPath: "/bin/sh")
+        shell.arguments = ["-c", #"while kill -0 "$1" 2>/dev/null; do sleep 0.1; done; /usr/bin/open "$0""#,
+                           Bundle.main.bundlePath, String(ProcessInfo.processInfo.processIdentifier)]
+        // No helper, no relaunch: stay open, and offer the button again rather than a stuck "Installing…".
+        guard (try? shell.run()) != nil else { installing = false; return }
+        NSApp.terminate(nil)
     }
 
     private func checkForUpdate() async {
