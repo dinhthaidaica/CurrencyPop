@@ -1,6 +1,6 @@
 #!/bin/bash
 # ./build.sh        build CurrencyPop.app next to this script
-# ./build.sh test   run the arithmetic and formatting checks
+# ./build.sh test   run the arithmetic and formatting checks, and the installer checks
 # ./build.sh run    build, then launch it
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -13,7 +13,7 @@ APP="CurrencyPop.app"
 if [ "${1:-}" = "test" ]; then
   mkdir -p .build
   swiftc -target "$(uname -m)-apple-macos$MIN" Math.swift tests/main.swift -o .build/selftest
-  exec .build/selftest
+  exec .build/selftest "$(xcrun --find swiftc)"   # an Apple-signed binary, for the team ID check
 fi
 
 rm -rf "$APP"
