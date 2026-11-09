@@ -306,7 +306,7 @@ struct ConversionRow: View {
     private var subtotal: String? {
         guard conversion.input.contains(where: { "+-*/.,".contains($0) }) else { return nil }
         guard let amount else { return lastSubtotal }
-        return formatAmount(amount, conversion.from)
+        return formatReading(amount, conversion.from)
     }
 
     private var amountField: some View {

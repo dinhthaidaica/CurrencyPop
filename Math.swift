@@ -182,6 +182,14 @@ func formatAmount(_ value: Double, _ code: String) -> String {
     return f.string(from: value as NSNumber) ?? "—"
 }
 
+/// The "= …" hint beside the amount: the currency's own decimals, or up to two
+/// when the typed amount has them. formatAmount would round 1,25 JPY to "1",
+/// hiding exactly the reading the hint is there to show.
+func formatReading(_ value: Double, _ code: String) -> String {
+    let digits = fractionDigits(code)
+    return value.formatted(.number.precision(.fractionLength(digits...max(digits, 2))))
+}
+
 /// A single unit rate, where the interesting digits sit further right.
 func formatRate(_ value: Double) -> String {
     let f = NumberFormatter()
