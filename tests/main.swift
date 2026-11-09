@@ -82,6 +82,9 @@ check(formatAmount(92.5926, "USD").filter(\.isNumber) == "9259", "cents are kept
 check(formatAmount(1234.56, "DKK").filter(\.isNumber) == "123456", "a large DKK amount keeps its øre")
 check(formatAmount(1234, "USD").filter(\.isNumber) == "123400", "a round amount still shows cents")
 check(formatAmount(7076250, "VND").count > 7, "big numbers are grouped")
+check(formatReading(1.25, "JPY").filter(\.isNumber) == "125", "the hint keeps decimals a yen amount was typed with")
+check(formatReading(1250, "JPY").filter(\.isNumber) == "1250", "a whole yen amount stays whole in the hint")
+check(formatReading(12.5, "USD").filter(\.isNumber) == "1250", "the hint keeps the currency's own decimals")
 check(shortDate("2026-10-28") == "28 Oct", "ECB date")
 check(shortDate("nonsense") == "nonsense", "unparseable date passes through")
 
